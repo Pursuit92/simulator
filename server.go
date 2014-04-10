@@ -2,6 +2,7 @@ package simulator
 
 import (
 	"container/list"
+	"fmt"
 )
 
 type ServStatus struct {
@@ -26,6 +27,15 @@ type Server struct {
 	cust *Customer
 }
 
+func (s *Server) PrintState() {
+	if s.cust != nil {
+		fmt.Printf("Serving %s\n",s.cust.Name)
+		fmt.Printf("Time Remaining: %d\n",s.TimeLeft)
+	} else {
+		fmt.Println("Idle")
+	}
+}
+
 func (s *Server) Update() {
 	switch s.Status.Status {
 	case Idle:
@@ -33,16 +43,16 @@ func (s *Server) Update() {
 	case Serving:
 		s.TimeServing++
 		s.cust.Update()
+		s.TimeLeft--
+		if s.TimeLeft <= 0 {
+			s.sim.Done.PushFront(s.cust)
+			s.Status = ServStatus{Status: Idle}
+			s.cust.Done()
+			s.cust = nil
+		}
 	default:
 	}
 	s.StatusHist.PushBack(s.Status)
-	s.TimeLeft--
-	if s.TimeLeft == 0 {
-		s.sim.Done.PushFront(s.cust)
-		s.Status = ServStatus{Status: Idle}
-		s.cust.Done()
-		s.cust = nil
-	}
 }
 
 func (s *Server) StartServing(c *Customer, time int) {
@@ -67,3 +77,5 @@ func AllIdle(lst *list.List) bool {
 		return s.Status.Status == Idle
 	})
 }
+
+

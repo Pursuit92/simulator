@@ -28,6 +28,10 @@ type Simulator struct {
 	Done *list.List
 
 	OneToOne bool
+
+	CustStrat NewCustStrat
+	QueueStrat QueueAllocStrat
+	ServerStrat ServAllocStrat
 }
 
 func (s *Simulator) GenCusts() {
@@ -46,6 +50,7 @@ func (s *Simulator) GenServers() {
 	for i := 0; i < s.NumServers; i++ {
 		srv := NewServ()
 		srv.Name = fmt.Sprintf("Server %d",i)
+		srv.sim = s
 		s.Servers.PushBack(srv)
 	}
 }
@@ -56,7 +61,7 @@ func (s *Simulator) GenQueues() {
 	for i := 0; i < s.NumQueues; i++ {
 		q := NewQueue()
 		q.Name = fmt.Sprintf("Queue %d",i)
-		s.Servers.PushBack(q)
+		s.Queues.PushBack(q)
 	}
 }
 
@@ -64,46 +69,60 @@ func (s *Simulator) Init() {
 	s.GenCusts()
 	s.GenServers()
 	s.GenQueues()
+	s.Done = list.New()
 }
 
 func (s *Simulator) ProcArrivals() {
 	for fst := s.Customers.Front();
-		fst.Value.(*Customer).Interarrival == 0;
+		fst != nil;
 		fst = s.Customers.Front() {
-			// Remove a queue from the list of queues
-			q := s.NewCustAlloc()
-			// remove the customer and enqueue
-			cust := s.Customers.Remove(fst).(*Customer)
-			q.Enqueue(cust)
+		    if fst.Value.(*Customer).Interarrival == 0 {
+				// Remove a queue from the list of queues
+				q := s.NewCustAlloc()
+				// remove the customer and enqueue
+				cust := s.Customers.Remove(fst).(*Customer)
+				q.Enqueue(cust)
 
-			// add the queue back
-			s.Queues.PushFront(q)
+				// add the queue back
+				s.Queues.PushFront(q)
+			} else {
+				break
+			}
 		}
 	// update the frontmost customer
-	s.Customers.Front().Value.(*Customer).Update()
+	if s.Customers.Len() >= 1 {
+		s.Customers.Front().Value.(*Customer).Update()
+	}
 }
 
 func (s *Simulator) QueuesToServers() {
+	fmt.Println("QueuesToServers Start")
+	s.simpleState()
 	if s.OneToOne {
-		for srv := s.ServerAlloc(); s.Servers.Len() != 0; srv = s.ServerAlloc() {
+		for ; s.Servers.Len() != 0 ; {
+			srv := s.ServerAlloc()
 			s.tmpServers.PushBack(srv)
 			q := s.QueueAlloc()
 			s.tmpQueues.PushBack(q)
-			srv.StartServing(q.Dequeue().(*Customer),s.ServRand())
+			if q.Size() > 0 && srv.Status.Status == Idle {
+				srv.StartServing(q.Dequeue().(*Customer),s.ServRand())
+			}
 		}
 		s.Queues.PushFrontList(s.tmpQueues)
 		s.Servers.PushFrontList(s.tmpServers)
 		s.tmpQueues = list.New()
 		s.tmpServers = list.New()
 	} else {
-		for srv := s.ServerAlloc(); s.Servers.Len() != 0; srv = s.ServerAlloc() {
+		for ; s.Servers.Len() != 0; {
+			srv := s.ServerAlloc()
 			s.tmpServers.PushBack(srv)
 
 			found := false
 
 			// locate a queue with a customer
 			var q *Queue
-			for q = s.QueueAlloc(); s.Queues.Len() != 0; q = s.QueueAlloc() {
+			for ; s.Queues.Len() != 0; {
+				q = s.QueueAlloc()
 				s.tmpQueues.PushBack(q)
 				if q.Size() != 0 {
 					found = true
@@ -124,12 +143,15 @@ func (s *Simulator) QueuesToServers() {
 		s.Servers.PushFrontList(s.tmpServers)
 		s.tmpServers = list.New()
 	}
+	s.simpleState()
+	fmt.Println("QueuesToServers Done")
 }
 
 func (s *Simulator) UpdateServers() {
 	all(s.Servers,func(i interface{}) bool {
 		srv := i.(*Server)
 		srv.Update()
+		srv.PrintState()
 		return true
 	})
 }
@@ -142,23 +164,18 @@ func (s *Simulator) UpdateQueues() {
 	})
 }
 
-func (s *Simulator) ConfigRands() {
-}
-
-func (s *Simulator) ConfigRest() {
-}
-
-func (s *Simulator) ConfigReset() {
+func (s *Simulator) simpleState() {
+	fmt.Printf("%d Servers\n%d Queues\n%d Customers to arrive\n%d Customers Done\n",
+		s.Servers.Len(),s.Queues.Len(),s.Customers.Len(),s.Done.Len())
 }
 
 func (s *Simulator) Run() {
-	s.ConfigRands()
-
 	s.Init()
 
-	s.ConfigRest()
+	s.Configure()
 
 	for {
+		println("Step")
 		s.ProcArrivals()
 
 		s.QueuesToServers()
@@ -170,4 +187,5 @@ func (s *Simulator) Run() {
 			break
 		}
 	}
+	s.simpleState()
 }

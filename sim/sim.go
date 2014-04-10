@@ -6,19 +6,22 @@ import (
 
 func main() {
 	sim := &simulator.Simulator{}
+	ModelPrompt(sim)
+	CustPrompt(sim)
+	RandPrompt(sim)
 	/*
-	sim.NewCustAlloc = simulator.MakeQueueSelector(simulator.UniformSel,sim.Queues)
-	sim.ServerAlloc = simulator.MakeServerSelector(simulator.UniformSel,sim.Servers)
-	sim.QueueAlloc = simulator.MakeQueueSelector(simulator.UniformSel,sim.Queues)
+	sim.CustStrat = simulator.CustShortest
+	sim.QueueStrat = simulator.QueueLongest
+	sim.ServerStrat = simulator.ServRand
 	sim.InterRand = simulator.Uniform(0,10)
 	sim.ServRand = simulator.Uniform(0,10)
 	sim.OneToOne = true
 	sim.NumQueues = 1
 	sim.NumServers = 1
-	sim.NumCusts = 1
+	sim.NumCusts = 10
+	*/
 
 	sim.Run()
-	*/
 
 	println(sim)
 }
