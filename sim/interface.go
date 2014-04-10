@@ -164,7 +164,69 @@ func CustPrompt(s *simulator.Simulator) {
 	}
 }
 
-func RandPrompt(s *simulator.Simulator) {
-	s.InterRand = simulator.Uniform(0,10)
-	s.ServRand = simulator.Uniform(0,10)
+type RandDistEnum int
+const (
+	RandUniform RandDistEnum = 1
+	RandNormal = 2
+	RandExponential = 3
+	RandPoisson = 4
+)
+
+func RandPrompt(which string) (RandDistEnum,int,int,int,int) {
+	fmt.Print("Select ",which," random distribution:\n\n")
+	fmt.Print("\t1. Uniform\n\t2. Normal\n\t3. Exponential\n\t4. Poisson\n\n")
+	var i RandDistEnum
+	for {
+		fmt.Print("Input 1-4 [1]: ")
+		_,err := fmt.Scan(&i)
+		if err != nil || i < 1 || i > 4 {
+			fmt.Println("Invalid Input")
+		} else {
+			fmt.Println()
+			break
+		}
+	}
+
+	min,max := MinMaxPrompt()
+
+	var ext1,ext2 int
+	switch i {
+	case RandUniform:
+		return i,min,max,0,0
+	case RandNormal:
+		ext1,ext2 = RandExtraPrompt("mean","deviation")
+	default:
+		ext1,_ = RandExtraPrompt("mean","")
+	}
+
+	return i,min,max,ext1,ext2
+}
+
+func prompt(str string, i *int) {
+	for {
+		fmt.Print("Input ",str,": ")
+		_,err := fmt.Scan(i)
+		if err != nil || *i < 0 {
+			fmt.Println("Invalid Input")
+		} else {
+			break
+		}
+	}
+}
+
+func MinMaxPrompt() (int,int) {
+	var min,max int
+	prompt("minimum",&min)
+	prompt("maximum",&max)
+
+	return min,max
+}
+
+func RandExtraPrompt(str1,str2 string) (int,int) {
+	var ext1,ext2 int
+	prompt(str1,&ext1)
+	if str2 != "" {
+		prompt(str2,&ext2)
+	}
+	return ext1,ext2
 }

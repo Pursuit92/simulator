@@ -170,11 +170,14 @@ func (s *Simulator) simpleState() {
 }
 
 func (s *Simulator) Run() {
+	steps := 0
+	fmt.Printf("Running Simulator... ")
 	s.Init()
 
 	s.Configure()
 
 	for {
+		steps++
 		println("Step")
 		s.ProcArrivals()
 
@@ -188,4 +191,5 @@ func (s *Simulator) Run() {
 		}
 	}
 	s.simpleState()
+	fmt.Printf("Done! Ran for %d steps.",steps)
 }
