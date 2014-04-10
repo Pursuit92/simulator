@@ -45,8 +45,9 @@ func (s *Server) Update() {
 	}
 }
 
-func (s *Server) StartServing(c *Customer) {
+func (s *Server) StartServing(c *Customer, time int) {
 	s.Status = ServStatus{Name: c.Name, Status: Serving}
+	s.TimeLeft = time
 	c.Status = CustStatus{Name: s.Name, Status: BeingServed}
 	c.queue = nil
 	c.server = s
@@ -58,4 +59,11 @@ func NewServ() *Server {
 		s.Status = ServStatus{Status: Idle}
 		s.StatusHist = list.New()
 		return &s
+}
+
+func AllIdle(lst *list.List) bool {
+	return all(lst,func(i interface{}) bool {
+		s := i.(*Server)
+		return s.Status.Status == Idle
+	})
 }

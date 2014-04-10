@@ -40,3 +40,9 @@ func Normal(min, max, mean, dev int) (func() int) {
 
 	}
 }
+
+func Uniform(min,max int) (func () int) {
+	return func() int {
+		return rand.Int() % (max - min) + min
+	}
+}

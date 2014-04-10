@@ -24,14 +24,14 @@ func compFirst(lst *list.List, comp func(interface{}, interface{}) bool) interfa
 func ShortestFirst(lst *list.List) interface{} {
 	return compFirst(lst,
 		func(v, curr interface{}) bool {
-			return v.(Queue).Size() < curr.(Queue).Size()
+			return v.(*Queue).Size() < curr.(*Queue).Size()
 		})
 }
 
 func LongestFirst(lst *list.List) interface{} {
 	return compFirst(lst,
 		func(v, curr interface{}) bool {
-			return v.(Queue).Size() > curr.(Queue).Size()
+			return v.(*Queue).Size() > curr.(*Queue).Size()
 		})
 }
 
@@ -57,10 +57,24 @@ func funcSelector(lst *list.List, f func(int) int) interface{} {
 	return nil
 }
 
-func Uniform(lst *list.List) interface{} {
+func UniformSel(lst *list.List) interface{} {
 	return funcSelector(lst,
 		func(s int) int {
 			return rand.Int() % s
 		})
 }
 
+type QueueSelector func() *Queue
+type ServerSelector func() *Server
+
+func MakeQueueSelector(sel Selector, l *list.List) QueueSelector {
+	return func() *Queue {
+		return sel(l).(*Queue)
+	}
+}
+
+func MakeServerSelector(sel Selector, l *list.List) ServerSelector {
+	return func() *Server {
+		return sel(l).(*Server)
+	}
+}
