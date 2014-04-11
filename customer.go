@@ -2,6 +2,7 @@ package simulator
 
 import (
 	"container/list"
+	"fmt"
 )
 
 type CustStatus struct {
@@ -24,6 +25,8 @@ type Customer struct {
 	TimeQueue int
 	TimeServed int
 	Interarrival int
+	InterOrig int
+	IsFront bool
 	queue *Queue
 	server *Server
 }
@@ -35,11 +38,13 @@ func (c *Customer) Update() {
 	case BeingServed:
 		c.TimeServed++
 	case Unarrived:
-		c.Interarrival--
-		return
+		if c.IsFront {
+			c.Interarrival--
+		}
 	default:
 	}
-	c.StatusHist.PushBack(c.Status)
+	cpy := *c
+	c.StatusHist.PushBack(&cpy)
 }
 
 func (c *Customer) Done() {
@@ -51,5 +56,46 @@ func NewCust(iat int) *Customer {
 		c.Status = CustStatus{Status: Unarrived}
 		c.StatusHist = list.New()
 		c.Interarrival = iat
+		c.InterOrig = iat
 		return &c
+}
+
+func NYATable(lst *list.List) *list.List {
+	l := list.New()
+	head := list.New()
+	head.PushBack("Name")
+	head.PushBack("Time")
+	l.PushBack(head)
+	for e := lst.Front(); e != nil; e = e.Next() {
+		l.PushBack(e.Value.(*Customer).ArrivalStrings())
+	}
+	return l
+}
+
+func DoneTable(lst *list.List) *list.List {
+	l := list.New()
+	head := list.New()
+	head.PushBack("Name")
+	head.PushBack("Queue Time")
+	head.PushBack("Server Time")
+	l.PushBack(head)
+	for e := lst.Front(); e != nil; e = e.Next() {
+		l.PushBack(e.Value.(*Customer).DoneStrings())
+	}
+	return l
+}
+
+func (c *Customer) ArrivalStrings() *list.List {
+	l := list.New()
+	l.PushBack(c.Name)
+	l.PushBack(fmt.Sprintf("%d",c.Interarrival))
+	return l
+}
+
+func (c *Customer) DoneStrings() *list.List {
+	l := list.New()
+	l.PushBack(c.Name)
+	l.PushBack(fmt.Sprintf("%d",c.TimeQueue))
+	l.PushBack(fmt.Sprintf("%d",c.TimeServed))
+	return l
 }

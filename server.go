@@ -52,7 +52,8 @@ func (s *Server) Update() {
 		}
 	default:
 	}
-	s.StatusHist.PushBack(s.Status)
+	cpy := *s
+	s.StatusHist.PushBack(&cpy)
 }
 
 func (s *Server) StartServing(c *Customer, time int) {
@@ -78,4 +79,30 @@ func AllIdle(lst *list.List) bool {
 	})
 }
 
+func (s *Server) StateStrings() *list.List {
+	l := list.New()
+	l.PushBack(s.Name)
+	if s.Status.Status != Idle {
+		l.PushBack(s.cust.Name)
+		l.PushBack(fmt.Sprintf("%d",s.TimeLeft))
+	} else {
+		l.PushBack("Idle")
+		l.PushBack("")
+	}
 
+	return l
+}
+
+func ServerTable(srvs *list.List) *list.List {
+	head := list.New()
+	l := list.New()
+	head.PushBack("Server")
+	head.PushBack("Status")
+	head.PushBack("Time Remaining")
+	l.PushBack(head)
+	for e := srvs.Front(); e != nil; e = e.Next() {
+		srv := e.Value.(*Server)
+		l.PushBack(srv.StateStrings())
+	}
+	return l
+}

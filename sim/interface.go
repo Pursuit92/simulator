@@ -230,3 +230,17 @@ func RandExtraPrompt(str1,str2 string) (int,int) {
 	}
 	return ext1,ext2
 }
+
+func DisplayResults(s *simulator.Simulator) {
+	for {
+		var step int
+		prompt(fmt.Sprintf("Select time to view 1-%d (0 to quit): ",s.Steps),&step)
+		if step != 0 {
+			s.PrintStep(step)
+		} else {
+			s.PrintResults()
+			break
+		}
+	}
+}
+

@@ -30,19 +30,9 @@ func main() {
 	case RandPoisson:
 		sim.ServRand = simulator.Poisson(servMin,servMax,servExt1)
 	}
-	/*
-	sim.CustStrat = simulator.CustShortest
-	sim.QueueStrat = simulator.QueueLongest
-	sim.ServerStrat = simulator.ServRand
-	sim.InterRand = simulator.Uniform(0,10)
-	sim.ServRand = simulator.Uniform(0,10)
-	sim.OneToOne = true
-	sim.NumQueues = 1
-	sim.NumServers = 1
-	sim.NumCusts = 10
-	*/
 
 	sim.Run()
 
-	println(sim)
+	//DisplayResults(sim)
+
 }

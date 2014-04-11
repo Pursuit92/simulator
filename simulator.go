@@ -32,6 +32,7 @@ type Simulator struct {
 	CustStrat NewCustStrat
 	QueueStrat QueueAllocStrat
 	ServerStrat ServAllocStrat
+	Steps int
 }
 
 func (s *Simulator) GenCusts() {
@@ -81,6 +82,7 @@ func (s *Simulator) ProcArrivals() {
 				q := s.NewCustAlloc()
 				// remove the customer and enqueue
 				cust := s.Customers.Remove(fst).(*Customer)
+				cust.Status = CustStatus{Name: q.Name, Status: InQueue}
 				q.Enqueue(cust)
 
 				// add the queue back
@@ -91,13 +93,13 @@ func (s *Simulator) ProcArrivals() {
 		}
 	// update the frontmost customer
 	if s.Customers.Len() >= 1 {
-		s.Customers.Front().Value.(*Customer).Update()
+		s.Customers.Front().Value.(*Customer).IsFront = true
 	}
 }
 
 func (s *Simulator) QueuesToServers() {
-	fmt.Println("QueuesToServers Start")
-	s.simpleState()
+	//fmt.Println("QueuesToServers Start")
+	//s.simpleState()
 	if s.OneToOne {
 		for ; s.Servers.Len() != 0 ; {
 			srv := s.ServerAlloc()
@@ -117,41 +119,51 @@ func (s *Simulator) QueuesToServers() {
 			srv := s.ServerAlloc()
 			s.tmpServers.PushBack(srv)
 
-			found := false
+			if srv.Status.Status == Idle {
+				found := false
 
-			// locate a queue with a customer
-			var q *Queue
-			for ; s.Queues.Len() != 0; {
-				q = s.QueueAlloc()
-				s.tmpQueues.PushBack(q)
-				if q.Size() != 0 {
-					found = true
+				// locate a queue with a customer
+				var q *Queue
+				for ; s.Queues.Len() != 0; {
+					q = s.QueueAlloc()
+					s.tmpQueues.PushBack(q)
+					if q.Size() != 0 {
+						found = true
+						break
+					}
+				}
+				// Return them to the pool
+				s.Queues.PushFrontList(s.tmpQueues)
+				s.tmpQueues = list.New()
+
+				if found {
+					srv.StartServing(q.Dequeue().(*Customer), s.ServRand())
+				} else {
+					// if no suitable queue found, no other servers can serve either
 					break
 				}
-			}
-			// Return them to the pool
-			s.Queues.PushFrontList(s.tmpQueues)
-			s.tmpQueues = list.New()
-
-			if found {
-				srv.StartServing(q.Dequeue().(*Customer), s.ServRand())
-			} else {
-				// if no suitable queue found, no other servers can serve either
-				break
 			}
 		}
 		s.Servers.PushFrontList(s.tmpServers)
 		s.tmpServers = list.New()
 	}
-	s.simpleState()
-	fmt.Println("QueuesToServers Done")
+	//s.simpleState()
+	//fmt.Println("QueuesToServers Done")
 }
 
 func (s *Simulator) UpdateServers() {
 	all(s.Servers,func(i interface{}) bool {
 		srv := i.(*Server)
 		srv.Update()
-		srv.PrintState()
+		//srv.PrintState()
+		return true
+	})
+}
+
+func (s *Simulator) UpdateUnarrived() {
+	all(s.Customers,func(i interface{}) bool {
+		c := i.(*Customer)
+		c.Update()
 		return true
 	})
 }
@@ -170,19 +182,25 @@ func (s *Simulator) simpleState() {
 }
 
 func (s *Simulator) Run() {
-	steps := 0
-	fmt.Printf("Running Simulator... ")
+	fmt.Printf("Running Simulator...\n")
 	s.Init()
 
 	s.Configure()
 
 	for {
-		steps++
-		println("Step")
+		s.Steps++
+
+		//println("Step")
+		s.PrintNYA()
+		s.PrintQueues()
+		s.PrintServers()
+		s.PrintDone()
+
 		s.ProcArrivals()
 
 		s.QueuesToServers()
 
+		s.UpdateUnarrived()
 		s.UpdateServers()
 		s.UpdateQueues()
 
@@ -190,6 +208,71 @@ func (s *Simulator) Run() {
 			break
 		}
 	}
-	s.simpleState()
-	fmt.Printf("Done! Ran for %d steps.",steps)
+	//s.simpleState()
+	fmt.Printf("Done! Ran for %d steps.\n",s.Steps)
+	s.PrintNYA()
+	s.PrintQueues()
+	s.PrintServers()
+	s.PrintDone()
+}
+
+func (s *Simulator) PrintQueues() {
+	for e := s.Queues.Front(); e != nil; e = e.Next() {
+		PrintTable(e.Value.(*Queue).StateStrings())
+		if e.Next() != nil {
+			fmt.Println()
+		}
+	}
+}
+
+func (s *Simulator) PrintServers() {
+	PrintTable(ServerTable(s.Servers))
+}
+
+func (s *Simulator) PrintNYA() {
+	PrintTable(NYATable(s.Customers))
+}
+
+func (s *Simulator) PrintDone() {
+	PrintTable(DoneTable(s.Done))
+}
+
+func (s *Simulator) PrintStep(step int) {
+}
+
+func (s *Simulator) PrintResults() {
+	tab := list.New()
+	tab.PushFront(TableEntry("Average Wait Time",s.AvgWait()))
+	tab.PushFront(TableEntry("Probability of Waiting",s.ProbWait()))
+	tab.PushFront(TableEntry("Probability of Server Idle",s.ProbIdle()))
+	tab.PushFront(TableEntry("Average Server Utilization",s.ServerUt()))
+	tab.PushFront(TableEntry("Average Service Time",s.AvgServ()))
+	tab.PushFront(TableEntry("Average Interarrival Time",s.AvgInter()))
+	tab.PushFront(TableEntry("Average Time Spent in System",s.AvgSys()))
+	PrintTable(tab)
+}
+
+func (s *Simulator) AvgWait() int {
+	totWait := funcSum(s.Done,func(i interface{}) int {
+		cust := i.(*Customer)
+		return cust.TimeQueue
+	})
+
+	return int(totWait / s.NumCusts)
+}
+
+func (s *Simulator) ProbWait() string {
+	totWait := funcSum(s.Done,func(i interface{}) int {
+		cust := i.(*Customer)
+		if cust.TimeQueue > 0 {
+			return 1
+		}
+		return 0
+	})
+
+	return fmt.Sprintf("%0.2f",totWait/s.NumCusts)
+}
+
+func (s *Simulator) ProbIdle() string {
+	return ""
 }
