@@ -182,7 +182,7 @@ func (s *Simulator) simpleState() {
 }
 
 func (s *Simulator) Run() {
-	fmt.Printf("Running Simulator...\n")
+	fmt.Printf("Running Simulator... ")
 	s.Init()
 
 	s.Configure()
@@ -190,11 +190,13 @@ func (s *Simulator) Run() {
 	for {
 		s.Steps++
 
+/*
 		//println("Step")
 		s.PrintNYA()
 		s.PrintQueues()
 		s.PrintServers()
 		s.PrintDone()
+*/
 
 		s.ProcArrivals()
 
@@ -210,10 +212,12 @@ func (s *Simulator) Run() {
 	}
 	//s.simpleState()
 	fmt.Printf("Done! Ran for %d steps.\n",s.Steps)
+/*
 	s.PrintNYA()
 	s.PrintQueues()
 	s.PrintServers()
 	s.PrintDone()
+*/
 }
 
 func (s *Simulator) PrintQueues() {
@@ -225,19 +229,84 @@ func (s *Simulator) PrintQueues() {
 	}
 }
 
+func (s *Simulator) PrintQueuesAt(time int) {
+	for e := s.Queues.Front(); e != nil; e = e.Next() {
+		f := e.Value.(*Queue).StatusHist.Front()
+		for i := 0; i < time && f != nil; i++ {
+			f = f.Next()
+		}
+		if f != nil {
+			PrintTable(f.Value.(*Queue).StateStrings())
+		}
+		if e.Next() != nil {
+			fmt.Println()
+		}
+	}
+}
+
 func (s *Simulator) PrintServers() {
 	PrintTable(ServerTable(s.Servers))
+}
+
+func (s *Simulator) PrintServersAt(time int) {
+	servs := list.New()
+	for e := s.Servers.Front(); e != nil; e = e.Next() {
+		f := e.Value.(*Server).StatusHist.Front()
+		for i := 0; i < time && f != nil; i++ {
+			f = f.Next()
+		}
+		if f != nil {
+			servs.PushBack(f.Value.(*Server))
+		}
+	}
+
+	PrintTable(ServerTable(servs))
 }
 
 func (s *Simulator) PrintNYA() {
 	PrintTable(NYATable(s.Customers))
 }
 
+func (s *Simulator) PrintNYAAt(time int) {
+	custs := list.New()
+	for e := s.Customers.Front(); e != nil; e = e.Next() {
+		f := e.Value.(*Customer).StatusHist.Front()
+		for i := 0; i < time && f != nil; i++ {
+			f = f.Next()
+		}
+		if f != nil {
+			custs.PushBack(f.Value.(*Customer))
+		}
+	}
+
+	PrintTable(NYATable(custs))
+}
+
+
 func (s *Simulator) PrintDone() {
 	PrintTable(DoneTable(s.Done))
 }
 
+func (s *Simulator) PrintDoneAt(time int) {
+	custs := list.New()
+	for e := s.Done.Front(); e != nil; e = e.Next() {
+		f := e.Value.(*Customer).StatusHist.Front()
+		for i := 0; i < time && f != nil; i++ {
+			f = f.Next()
+		}
+		if f != nil {
+			custs.PushBack(f.Value.(*Customer))
+		}
+	}
+
+	PrintTable(DoneTable(custs))
+}
+
 func (s *Simulator) PrintStep(step int) {
+	step -= 1
+	s.PrintQueuesAt(step)
+	fmt.Println()
+	s.PrintServersAt(step)
 }
 
 func (s *Simulator) PrintResults() {
@@ -252,13 +321,13 @@ func (s *Simulator) PrintResults() {
 	PrintTable(tab)
 }
 
-func (s *Simulator) AvgWait() int {
+func (s *Simulator) AvgWait() string {
 	totWait := funcSum(s.Done,func(i interface{}) int {
 		cust := i.(*Customer)
 		return cust.TimeQueue
 	})
 
-	return int(totWait / s.NumCusts)
+	return fmt.Sprintf("%0.2f",float64(totWait) / float64(s.NumCusts))
 }
 
 func (s *Simulator) ProbWait() string {
@@ -270,9 +339,50 @@ func (s *Simulator) ProbWait() string {
 		return 0
 	})
 
-	return fmt.Sprintf("%0.2f",totWait/s.NumCusts)
+	return fmt.Sprintf("%0.2f",float64(totWait) / float64(s.NumCusts))
 }
 
 func (s *Simulator) ProbIdle() string {
-	return ""
+	idling := funcSum(s.Servers, func(i interface{}) int {
+		srv := i.(*Server)
+		return srv.TimeIdle
+	})
+
+	return fmt.Sprintf("%0.2f",float64(idling) / float64(s.Steps))
 }
+
+func (s *Simulator) ServerUt() string {
+	used := funcSum(s.Servers, func(i interface{}) int {
+		srv := i.(*Server)
+		return srv.TimeServing
+	})
+
+	return fmt.Sprintf("%0.2f",float64(used) / float64(s.Steps))
+}
+
+func (s *Simulator) AvgServ() string {
+	servTime := funcSum(s.Done, func(i interface{}) int {
+		cust := i.(*Customer)
+		return cust.TimeServed
+	})
+
+	return fmt.Sprintf("%0.2f",float64(servTime) / float64(s.NumCusts))
+}
+
+func (s *Simulator) AvgSys() string {
+	sysTime := funcSum(s.Done, func(i interface{}) int {
+		cust := i.(*Customer)
+		return cust.TimeServed + cust.TimeQueue
+	})
+
+	return fmt.Sprintf("%0.2f",float64(sysTime) / float64(s.NumCusts))
+}
+
+func (s *Simulator) AvgInter() string {
+	inter := funcSum(s.Done, func(i interface{}) int {
+		cust := i.(*Customer)
+		return cust.InterOrig
+	})
+	return fmt.Sprintf("%0.2f",float64(inter) / float64(s.NumCusts))
+}
+

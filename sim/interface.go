@@ -173,6 +173,7 @@ const (
 )
 
 func RandPrompt(which string) (RandDistEnum,int,int,int,int) {
+	defer fmt.Println()
 	fmt.Print("Select ",which," random distribution:\n\n")
 	fmt.Print("\t1. Uniform\n\t2. Normal\n\t3. Exponential\n\t4. Poisson\n\n")
 	var i RandDistEnum
@@ -232,13 +233,18 @@ func RandExtraPrompt(str1,str2 string) (int,int) {
 }
 
 func DisplayResults(s *simulator.Simulator) {
+	fmt.Println()
 	for {
 		var step int
-		prompt(fmt.Sprintf("Select time to view 1-%d (0 to quit): ",s.Steps),&step)
+		prompt(fmt.Sprintf("Select time to view 1-%d (0 to quit)",s.Steps),&step)
 		if step != 0 {
+			fmt.Println()
 			s.PrintStep(step)
+			fmt.Println()
 		} else {
+			fmt.Println()
 			s.PrintResults()
+			fmt.Println()
 			break
 		}
 	}

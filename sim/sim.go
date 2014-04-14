@@ -33,6 +33,7 @@ func main() {
 
 	sim.Run()
 
-	//DisplayResults(sim)
+
+	DisplayResults(sim)
 
 }
