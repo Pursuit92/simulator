@@ -19,6 +19,9 @@ func buildSims(conf FlagConf) []*SingleRun {
 	}
 	runs := make([]*SingleRun, numSims)
 	/* Figure this out!
+	 * Needs to generate records with all combinations
+	 * of factor levels
+
 	i := 0
 	for _,v := range conf.Models {
 		for j,w := range conf.Factors {
