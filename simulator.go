@@ -182,7 +182,7 @@ func (s *Simulator) simpleState() {
 }
 
 func (s *Simulator) Run() {
-	fmt.Printf("Running Simulator... ")
+	//fmt.Printf("Running Simulator... ")
 	s.Init()
 
 	s.Configure()
@@ -211,7 +211,7 @@ func (s *Simulator) Run() {
 		}
 	}
 	//s.simpleState()
-	fmt.Printf("Done! Ran for %d steps.\n",s.Steps)
+	//fmt.Printf("Done! Ran for %d steps.\n",s.Steps)
 /*
 	s.PrintNYA()
 	s.PrintQueues()

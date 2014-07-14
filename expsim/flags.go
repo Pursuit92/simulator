@@ -7,7 +7,6 @@ import (
 )
 
 type FlagConf struct {
-	Models []string
 	Factors map[string][]int
 	Results []string
 	Reps int
@@ -39,21 +38,16 @@ func allAll(i,j []string) bool {
 }
 
 func RunFlags() FlagConf {
-	modelStr := flag.String("models","","CSV list of Models")
 	factorStr := flag.String("factors","","Factor/value list")
 	resultStr := flag.String("results","","CSV list of Results")
 	reps := flag.Int("reps",1,"Number of repetitions")
 	flag.Parse()
 
-	if *modelStr == "" || *factorStr == "" || *resultStr == "" {
+	if *factorStr == "" || *resultStr == "" {
 		panic("Missing Option!")
 	}
 
 	conf := FlagConf{}
-	conf.Models = strings.Split(*modelStr,",")
-	if ! allIn(conf.Models,Models) {
-		panic("Invalid Model!")
-	}
 	conf.Results = strings.Split(*resultStr,",")
 	if ! allIn(conf.Results,Results) {
 		panic("Invalid Result!")

@@ -2,12 +2,13 @@ package main
 
 const (
 	// models
-	SQSS string = "sqss"
-	MQMS = "mqms"
-	SQMS = "sqms"
-	PSQ = "psq"
+	SQSS int = iota
+	SQMS
+	PSQ
+	MQMS
 
 	// Factors
+	Model string = "models"
 	Queues = "queues"
 	Servers = "servers"
 	Customers = "customers"
@@ -20,7 +21,6 @@ const (
 )
 
 var (
-	Models []string = []string{SQSS,MQMS,SQMS,PSQ}
-	Factors = []string{Queues,Servers,Customers,IATime,STime}
+	Factors = []string{Model,Queues,Servers,Customers,IATime,STime}
 	Results = []string{Wait,ProbWait}
 )
